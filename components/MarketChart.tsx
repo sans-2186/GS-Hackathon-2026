@@ -1,10 +1,8 @@
 'use client';
-import type { Stock } from '@/lib/types';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-
-interface MarketChartProps { stocks: Stock[]; }
+import { getRealSectorCurves } from '@/lib/portfolioAnalytics';
 
 const SECTOR_COLORS: Record<string, string> = {
   tech: '#38bdf8',
@@ -20,37 +18,28 @@ const SECTOR_LABELS: Record<string, string> = {
   manufacturing: '⚙️ MFG',
 };
 
-function buildSectorCurve(stocks: Stock[], sector: string) {
-  const sectorStocks = stocks.filter(s => s.sector === sector);
-  if (!sectorStocks.length) return [];
-  const avgReturn = sectorStocks.reduce((sum, s) => sum + s.returnRate, 0) / sectorStocks.length;
-  const avgVolatility = sectorStocks.reduce((sum, s) => sum + s.volatility, 0) / sectorStocks.length;
-  const avgBeta = sectorStocks.reduce((sum, s) => sum + s.beta, 0) / sectorStocks.length;
+const MONTHS = ['Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May'];
 
-  const pts = 13; // monthly points
-  const data = [];
-  let v = 100;
-  for (let i = 0; i < pts; i++) {
-    v = v * (1 + avgReturn / 100 / 12 + Math.sin(i * 1.7 + avgBeta * 2) * avgVolatility * 0.18);
-    data.push(parseFloat(v.toFixed(2)));
-  }
-  return data;
-}
+const sectors = ['tech', 'finance', 'energy', 'manufacturing'];
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Now'];
-
-export default function MarketChart({ stocks }: MarketChartProps) {
-  const sectors = ['tech', 'finance', 'energy', 'manufacturing'];
-  const curves: Record<string, number[]> = {};
-  for (const s of sectors) curves[s] = buildSectorCurve(stocks, s);
+export default function MarketChart() {
+  const curves = getRealSectorCurves();
 
   const chartData = MONTHS.map((month, i) => {
     const row: Record<string, string | number> = { month };
-    for (const s of sectors) row[s] = curves[s][i] ?? 100;
+    for (const s of sectors) row[s] = curves[s]?.[i] ?? 100;
     return row;
   });
 
-  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
+  const CustomTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean;
+    payload?: { name: string; value: number; color: string }[];
+    label?: string;
+  }) => {
     if (!active || !payload?.length) return null;
     return (
       <div style={{
@@ -62,7 +51,7 @@ export default function MarketChart({ stocks }: MarketChartProps) {
         fontSize: 12,
         boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
       }}>
-        <div style={{ color: '#86efac', marginBottom: 6, fontWeight: 700 }}>{label}</div>
+        <div style={{ color: '#86efac', marginBottom: 6, fontWeight: 700 }}>{label} 2025/26</div>
         {payload.map((p) => (
           <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, color: p.color, marginBottom: 2 }}>
             <span>{SECTOR_LABELS[p.name]}</span>
@@ -88,11 +77,13 @@ export default function MarketChart({ stocks }: MarketChartProps) {
         <XAxis
           dataKey="month"
           tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11, fontFamily: 'Nunito,sans-serif' }}
-          axisLine={false} tickLine={false}
+          axisLine={false}
+          tickLine={false}
         />
         <YAxis
           tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: 'Nunito,sans-serif' }}
-          axisLine={false} tickLine={false}
+          axisLine={false}
+          tickLine={false}
           tickFormatter={(v) => `$${v}`}
           domain={['auto', 'auto']}
         />

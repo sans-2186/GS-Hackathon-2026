@@ -1,19 +1,7 @@
 'use client';
-import { useState, useRef, useCallback } from 'react';
-
-const DEFINITIONS: Record<string, string> = {
-  volatility: 'How wildly a stock price swings up and down. Higher = more unpredictable.',
-  beta: 'How much a stock moves compared to the overall market. Beta > 1 means more volatile than the market.',
-  'div.yield': 'Dividend Yield — the annual cash payout as a % of the stock price. Higher = more passive income.',
-  'p/e ratio': 'Price-to-Earnings ratio. How much investors pay per $1 of profit. Higher can mean overvalued.',
-  'return%': 'Historical annual return — how much the stock grew in percentage over the past year.',
-  price: 'Current market price per share in USD.',
-  risk: 'Our classification: Low = stable blue-chip, High = growth/speculative with bigger swings.',
-  sector: 'The industry the company operates in: Tech, Finance, Energy, or Manufacturing.',
-  beta_full: 'Measures stock sensitivity to market moves. 1.5 beta = moves 1.5x the market.',
-  marketcap: 'Total market value of all shares. Large-cap = $10B+, Mid-cap = $2–10B.',
-  momentum: 'Recent price trend direction and strength — a measure of buying/selling pressure.',
-};
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { getDefinition } from '@/lib/glossary';
 
 interface KeywordProps {
   term: string;
@@ -22,15 +10,14 @@ interface KeywordProps {
 }
 
 export default function Keyword({ term, children, className = '' }: KeywordProps) {
-  const key = term.toLowerCase();
-  const definition =
-    DEFINITIONS[key] ??
-    DEFINITIONS[Object.keys(DEFINITIONS).find(k => key.includes(k)) ?? ''] ??
-    null;
+  const definition = getDefinition(term);
 
   const [visible, setVisible] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [mounted, setMounted] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const handleEnter = useCallback(() => {
     if (!ref.current) return;
@@ -52,14 +39,14 @@ export default function Keyword({ term, children, className = '' }: KeywordProps
         {children}
       </span>
 
-      {visible && (
+      {visible && mounted && createPortal(
         <div
           style={{
             position: 'fixed',
             left: pos.x,
             top: pos.y,
             transform: 'translateX(-50%) translateY(-100%)',
-            zIndex: 9999,
+            zIndex: 99999,
             pointerEvents: 'none',
           }}
         >
@@ -89,7 +76,8 @@ export default function Keyword({ term, children, className = '' }: KeywordProps
               borderTop: '6px solid rgba(34,197,94,0.5)',
             }} />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

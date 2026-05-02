@@ -33,7 +33,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
         users[email] = { name: name.trim(), password };
         localStorage.setItem('sq_users', JSON.stringify(users));
         setUser({ name: name.trim(), email });
-        router.push('/home');
+        router.push('/onboarding');
       } else {
         if (!email || !password) { setError('Fill in all fields.'); setLoading(false); return; }
         const users: Record<string, { name: string; password: string }> =

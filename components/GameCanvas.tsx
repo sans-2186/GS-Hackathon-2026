@@ -100,12 +100,16 @@ export default function GameCanvas({ onGameEnd }: GameCanvasProps) {
     bgTrees2: [] as { x: number; h: number; w: number; dark: boolean }[],
     bgBushes: [] as { x: number; r: number }[],
     pendingEventForChoice: null as ActiveEvent | null,
+    obstacleCount: 0, // tracks negative What-If scenarios (0=crash, 1=inflation)
+    chestCount: 0,    // tracks positive chest interactions
   });
 
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [currentValue, setCurrentValue] = useState(investment);
   const [started, setStarted] = useState(false);
   const [choiceEvent, setChoiceEvent] = useState<ActiveEvent | null>(null);
+  const [scenarioHeader, setScenarioHeader] = useState<{ emoji: string; title: string; subtitle: string } | null>(null);
+  const [gameFinished, setGameFinished] = useState(false);
 
   const sectorColor = selectedStock ? SECTOR_COLORS[selectedStock.sector] : '#22c55e';
 
@@ -117,7 +121,7 @@ export default function GameCanvas({ onGameEnd }: GameCanvasProps) {
     s.timeline = [{ time: 0, value: investment, label: 'Race Start', type: 'chest' }];
     s.toasts = []; s.toastId = 0; s.running = false; s.finished = false;
     s.paused = false; s.legPhase = 0; s.shakeFrames = 0;
-    s.pendingEventForChoice = null;
+    s.pendingEventForChoice = null; s.obstacleCount = 0; s.chestCount = 0;
 
     const courseLength = 11000;
     s.events = gameEvents.map((ev) => ({
@@ -229,6 +233,7 @@ export default function GameCanvas({ onGameEnd }: GameCanvasProps) {
     s.pendingEventForChoice = null;
     s.paused = false;
     setChoiceEvent(null);
+    setScenarioHeader(null);
     setStoryChoices(null);
   }
 
@@ -574,6 +579,7 @@ export default function GameCanvas({ onGameEnd }: GameCanvasProps) {
       s.finished = true;
       play('finish');
       stopNature();
+      setGameFinished(true);
       onGameEnd(s.timeline, s.currentValue);
       return;
     }
@@ -593,6 +599,7 @@ export default function GameCanvas({ onGameEnd }: GameCanvasProps) {
       s.finished = true;
       play('finish');
       stopNature();
+      setGameFinished(true);
       onGameEnd(s.timeline, s.currentValue);
       return;
     }
@@ -660,16 +667,28 @@ export default function GameCanvas({ onGameEnd }: GameCanvasProps) {
           if (ev.type === 'obstacle') play('loss');
           else play('gain');
 
+          // Obstacles → negative What-If scenarios (crash=0, inflation=1)
+          // Chests → positive opportunity choices (no scenario index)
+          let eventIndex: number | undefined;
+          if (ev.type === 'obstacle') {
+            eventIndex = Math.min(s.obstacleCount, 1); // cap at 1 (only 2 negative scenarios)
+            s.obstacleCount++;
+          } else {
+            s.chestCount++;
+            // eventIndex stays undefined → narrator returns positive fallback choices
+          }
+
           // Pause for story choice
           s.paused = true;
           s.pendingEventForChoice = ev;
           setPendingEventIdx(s.events.indexOf(ev));
           setChoiceEvent(ev);
 
-          // Fetch story choices async (Claude or template fallback)
+          // Fetch story choices async (Claude or scenario fallback)
           import('@/lib/claudeNarrator').then(({ getStoryChoices }) => {
-            getStoryChoices(selectedStock!, ev.text, ev.type).then((choices) => {
+            getStoryChoices(selectedStock!, ev.text, ev.type, eventIndex).then(({ choices, scenarioHeader: hdr }) => {
               setStoryChoices(choices);
+              setScenarioHeader(hdr ?? null);
             });
           });
         }
@@ -787,17 +806,49 @@ export default function GameCanvas({ onGameEnd }: GameCanvasProps) {
           </div>
         )}
 
+        {/* Finish overlay */}
+        {gameFinished && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl" style={{ background: 'rgba(5,15,5,0.88)', backdropFilter: 'blur(6px)' }}>
+            <div className="text-6xl mb-4 animate-bounce-gentle">🏁</div>
+            <h3 className="font-display text-3xl text-white mb-2">Race Complete!</h3>
+            <p className="text-forest-pale text-sm mb-6">Calculating your results...</p>
+            <div className="flex gap-1.5">
+              {[0, 1, 2].map(i => (
+                <div
+                  key={i}
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{
+                    background: '#22c55e',
+                    animation: `pulse 1s ease-in-out ${i * 0.2}s infinite`,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Story choice overlay */}
-        {choiceEvent && storyChoices && (
+        {!gameFinished && choiceEvent && storyChoices && (
           <div className="absolute inset-0 flex items-center justify-center rounded-xl" style={{ background: 'rgba(5,15,5,0.88)', backdropFilter: 'blur(6px)' }}>
             <div className="choice-panel forest-card max-w-lg w-full mx-4 p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-2xl">{choiceEvent.type === 'obstacle' ? '⚠️' : '💰'}</span>
-                <h4 className="font-display text-lg" style={{ color: choiceEvent.type === 'obstacle' ? '#f87171' : '#fcd34d' }}>
-                  {choiceEvent.type === 'obstacle' ? 'Market Shock!' : 'Opportunity!'}
-                </h4>
-              </div>
-              <p className="text-forest-pale text-sm mb-5 leading-relaxed">{choiceEvent.text}</p>
+              {scenarioHeader ? (
+                <div className="text-center mb-4">
+                  <div className="text-3xl mb-1">{scenarioHeader.emoji}</div>
+                  <h4 className="font-display text-xl text-white">{scenarioHeader.title}</h4>
+                  <p className="text-forest-pale text-sm mt-1">{scenarioHeader.subtitle}</p>
+                  <div className="mt-2 px-3 py-1 inline-block rounded-full text-xs font-semibold" style={{ background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)' }}>
+                    What-If Scenario
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl">{choiceEvent.type === 'obstacle' ? '⚠️' : '💰'}</span>
+                  <h4 className="font-display text-lg" style={{ color: choiceEvent.type === 'obstacle' ? '#f87171' : '#fcd34d' }}>
+                    {choiceEvent.type === 'obstacle' ? 'Market Shock!' : 'Opportunity!'}
+                  </h4>
+                </div>
+              )}
+              {!scenarioHeader && <p className="text-forest-pale text-sm mb-5 leading-relaxed">{choiceEvent.text}</p>}
               <p className="text-xs text-forest-light mb-3 font-semibold">What do you do?</p>
               <div className="space-y-2">
                 {storyChoices.map((choice, i) => (

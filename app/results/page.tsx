@@ -1,10 +1,16 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { generateNarratorSummary } from '@/lib/aiNarrator';
+import TransparencyPanel from '@/components/TransparencyPanel';
 import dynamic from 'next/dynamic';
+import {
+  buildSuggestedPortfolio,
+  runScenario,
+  type UserProfile,
+} from '@/lib/portfolioAnalytics';
 
 const ResultsChart = dynamic(() => import('@/components/ResultsChart'), { ssr: false });
 
@@ -17,7 +23,7 @@ const SECTOR_EMOJIS: Record<string, string> = {
 
 export default function ResultsPage() {
   const router = useRouter();
-  const { selectedStock, investment, resultTimeline, finalValue, reset } = useGameStore();
+  const { selectedStock, investment, resultTimeline, finalValue, reset, userProfile } = useGameStore();
 
   useEffect(() => {
     if (!selectedStock || resultTimeline.length === 0) router.push('/setup');
@@ -37,6 +43,24 @@ export default function ResultsPage() {
   const worstMoment = [...resultTimeline].sort((a, b) => a.value - b.value)[0];
 
   const narratorText = generateNarratorSummary(selectedStock, gain, resultTimeline);
+
+  // Scenario recap using portfolio analytics
+  const scenarioRecap = useMemo(() => {
+    if (!userProfile) return null;
+    const profile = userProfile as UserProfile;
+    const portfolio = buildSuggestedPortfolio(profile);
+    const holdings = portfolio.holdings.map(h => ({ ticker: h.stock.ticker, weight: h.weight }));
+    const amount = investment;
+
+    // Determine which scenario was hardest (most obstacles = market crash scenario)
+    const obstacleCount = resultTimeline.filter(e => e.type === 'obstacle').length;
+    const scenarioType =
+      obstacleCount >= 2 ? 'market_crash' as const
+      : gain < 0 ? 'inflation' as const
+      : 'withdrawal_20' as const;
+
+    return runScenario(scenarioType, holdings, profile, amount);
+  }, [userProfile, investment, resultTimeline, gain]);
 
   return (
     <main className="min-h-screen py-8 px-4" style={{ background: 'linear-gradient(180deg,#0d1f0d,#050f05)' }}>
@@ -147,6 +171,54 @@ export default function ResultsPage() {
             ))}
           </div>
         </div>
+
+        {/* Portfolio Advisor */}
+        {scenarioRecap && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">🧭</span>
+              <h3 className="font-display text-xl text-forest-bright">Your Portfolio Advisor</h3>
+            </div>
+            <div className="forest-card p-5 mb-4">
+              <div className="flex items-start gap-4">
+                <div className="text-4xl flex-shrink-0">
+                  {scenarioRecap.type === 'market_crash' ? '🛡️' : scenarioRecap.type === 'inflation' ? '⚡' : '🌱'}
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-display text-lg text-white mb-1">{scenarioRecap.title}</h4>
+                  <p className="text-forest-pale text-sm mb-4">{scenarioRecap.description}</p>
+
+                  {/* Action-first metrics — no loss numbers */}
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="p-3 rounded-lg" style={{ background: 'rgba(34,197,94,0.09)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                      <div className="text-xs text-forest-bright font-semibold mb-1">HEALTH AFTER REBALANCING</div>
+                      <div className="font-display text-2xl" style={{ color: '#4ade80' }}>{scenarioRecap.newHealthScore}<span className="text-sm text-forest-light">/100</span></div>
+                      <div className="text-xs text-forest-pale mt-0.5">Follow the steps below to get here</div>
+                    </div>
+                    <div className="p-3 rounded-lg" style={{ background: 'rgba(252,211,77,0.09)', border: '1px solid rgba(252,211,77,0.2)' }}>
+                      <div className="text-xs text-yellow-300 font-semibold mb-1">YOUR BEST MOVE</div>
+                      <div className="text-sm font-semibold text-white leading-snug">{scenarioRecap.recommendation}</div>
+                    </div>
+                  </div>
+
+                  {/* Rebalancing steps */}
+                  <div className="p-3 rounded-lg" style={{ background: 'rgba(56,189,248,0.07)', border: '1px solid rgba(56,189,248,0.15)' }}>
+                    <div className="text-xs text-sky-400 font-semibold mb-2">ACTION PLAN</div>
+                    <ul className="space-y-1.5">
+                      {scenarioRecap.rebalancingActions.map((action, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-forest-pale">
+                          <span className="text-forest-bright mt-0.5 flex-shrink-0 font-bold">{i + 1}.</span>
+                          {action}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <TransparencyPanel scenario={scenarioRecap} investmentAmount={investment} />
+          </div>
+        )}
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">

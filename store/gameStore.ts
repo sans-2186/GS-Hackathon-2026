@@ -1,6 +1,6 @@
 'use client';
 import { create } from 'zustand';
-import type { Stock, GameEvent } from '@/lib/types';
+import type { Stock, GameEvent, UserProfile } from '@/lib/types';
 
 export interface GameResultEvent {
   time: number;
@@ -25,6 +25,10 @@ interface GameStore {
   user: User | null;
   setUser: (user: User) => void;
   logout: () => void;
+
+  // Onboarding / profile
+  userProfile: UserProfile | null;
+  setUserProfile: (profile: UserProfile) => void;
 
   // Game
   selectedStock: Stock | null;
@@ -58,6 +62,16 @@ const loadUser = (): User | null => {
   }
 };
 
+const loadUserProfile = (): UserProfile | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('sq_profile');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 export const useGameStore = create<GameStore>((set) => ({
   user: loadUser(),
   setUser: (user) => {
@@ -65,8 +79,17 @@ export const useGameStore = create<GameStore>((set) => ({
     set({ user });
   },
   logout: () => {
-    if (typeof window !== 'undefined') localStorage.removeItem('sq_user');
-    set({ user: null });
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('sq_user');
+      localStorage.removeItem('sq_profile');
+    }
+    set({ user: null, userProfile: null });
+  },
+
+  userProfile: loadUserProfile(),
+  setUserProfile: (profile) => {
+    if (typeof window !== 'undefined') localStorage.setItem('sq_profile', JSON.stringify(profile));
+    set({ userProfile: profile });
   },
 
   selectedStock: null,

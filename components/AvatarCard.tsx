@@ -30,12 +30,12 @@ export default function AvatarCard({ stock, investment }: AvatarCardProps) {
   const initial = stock.ticker.charAt(0).toUpperCase();
 
   return (
-    <div className="forest-card p-5 relative overflow-hidden">
+    <div className="forest-card p-5 relative">
       {/* Background glow */}
       <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10 blur-2xl pointer-events-none" style={{ background: color }} />
 
       {/* Avatar face + nametag */}
-      <div className="flex items-center gap-4 mb-4">
+      <div className="flex items-center gap-4 mb-4 pt-4">
         {/* Logo face — company initial in a circle */}
         <div className="relative flex-shrink-0">
           {/* Nametag above */}
