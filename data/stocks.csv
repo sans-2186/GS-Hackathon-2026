@@ -1,0 +1,25 @@
+ticker,company,sector,risk,price,returnRate,volatility,beta,dividendYield,description,marketCap,peRatio
+AAPL,Apple Inc.,tech,low,178.50,18.5,0.22,1.15,0.52,"World's largest tech company by market cap. Known for iPhone, Mac, and services ecosystem.",2900000,28.5
+MSFT,Microsoft Corp.,tech,low,415.20,24.3,0.19,0.90,0.72,"Cloud computing and software giant. Azure and Office 365 drive consistent revenue growth.",3080000,35.2
+NVDA,NVIDIA Corp.,tech,high,875.40,82.1,0.58,1.95,0.03,"Dominant GPU maker powering AI and data centers. Explosive growth in the AI era.",2150000,65.4
+META,Meta Platforms,tech,high,520.30,48.7,0.45,1.35,0.40,"Social media conglomerate behind Facebook, Instagram, WhatsApp. Heavy AI investments.",1330000,27.8
+GOOGL,Alphabet Inc.,tech,low,175.80,22.6,0.25,1.05,0.00,"Search and cloud giant. Dominant in digital advertising and enterprise AI services.",2180000,23.1
+AMD,Advanced Micro Devices,tech,high,165.40,55.3,0.62,1.82,0.00,"Rising chipmaker challenging Intel and NVIDIA across CPU, GPU and data center markets.",267000,45.6
+JPM,JPMorgan Chase,finance,low,198.30,14.2,0.18,0.95,2.40,"Largest US bank by assets. Strong consumer and investment banking franchises.",575000,11.8
+GS,Goldman Sachs,finance,high,475.60,19.8,0.32,1.42,2.20,"Premier investment bank. Leading in M&A advisory, trading, and asset management.",158000,13.4
+BAC,Bank of America,finance,low,38.20,11.5,0.22,1.12,2.65,"Second largest US bank. Broad consumer banking and wealth management services.",303000,12.1
+V,Visa Inc.,finance,low,278.90,16.8,0.15,0.92,0.76,"Global payments network processing trillions in transactions. High margins, low capital needs.",555000,30.2
+BRK,Berkshire Hathaway,finance,low,372.50,12.1,0.14,0.68,0.00,"Warren Buffett's conglomerate. Diversified holdings in insurance, rail, energy, and consumer brands.",814000,9.8
+C,Citigroup,finance,high,62.40,15.6,0.38,1.55,3.20,"Global banking network undergoing major restructuring. High exposure to international markets.",119000,10.5
+XOM,ExxonMobil,energy,low,112.30,10.8,0.28,0.82,3.48,"Integrated oil and gas supermajor. Massive reserves and profitable refining segment.",446000,13.9
+CVX,Chevron Corp.,energy,low,155.40,9.4,0.26,0.85,4.12,"Major integrated energy company. Strong free cash flow supports generous shareholder returns.",288000,14.2
+SLB,Schlumberger,energy,high,44.80,22.3,0.42,1.38,2.25,"World's largest oilfield services company. Benefits from global upstream capital spending.",62000,16.8
+NEE,NextEra Energy,energy,low,65.20,13.7,0.20,0.52,2.88,"Largest utility company in the US. Leading renewable energy portfolio in wind and solar.",133000,22.4
+OXY,Occidental Petroleum,energy,high,58.90,28.4,0.51,1.72,1.22,"Oil and gas explorer with Permian basin dominance. Backed by Berkshire Hathaway.",53000,12.6
+ENB,Enbridge Inc.,energy,low,38.10,8.9,0.18,0.78,7.42,"North America's largest pipeline operator. Regulated revenues with strong dividend history.",79000,18.1
+CAT,Caterpillar Inc.,manufacturing,low,348.70,15.3,0.24,1.02,1.62,"Global leader in construction and mining equipment. Benefits from infrastructure spending.",177000,15.8
+DE,John Deere,manufacturing,low,388.20,12.9,0.22,0.88,1.38,"World's leading agricultural equipment maker. Precision agriculture technology is a growth driver.",109000,12.7
+HON,Honeywell Intl.,manufacturing,low,198.40,11.2,0.19,0.94,2.18,"Diversified industrial with aerospace, building tech, and safety segments.",130000,21.4
+GE,GE Aerospace,manufacturing,high,162.80,34.6,0.38,1.28,0.80,"Spun-off aerospace and defense powerhouse. Strong commercial and military jet engine demand.",178000,32.5
+MMM,3M Company,manufacturing,high,95.40,6.8,0.35,0.98,6.24,"Diversified manufacturer facing litigation headwinds. Restructuring to improve profitability.",52000,11.2
+ETN,Eaton Corporation,manufacturing,low,285.60,18.7,0.23,1.05,1.42,"Power management leader benefiting from electrification and data center buildout.",114000,25.3
