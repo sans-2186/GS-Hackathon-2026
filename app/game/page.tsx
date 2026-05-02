@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import GameCanvas from '@/components/GameCanvas';
 import { useGameStore } from '@/store/gameStore';
@@ -6,7 +7,12 @@ import type { GameResultEvent } from '@/store/gameStore';
 
 export default function GamePage() {
   const router = useRouter();
-  const { selectedStock, setResultTimeline, setFinalValue } = useGameStore();
+  const { selectedStock, setResultTimeline, setFinalValue, user } = useGameStore();
+
+  useEffect(() => {
+    if (!selectedStock) router.push('/setup');
+    if (!user) router.push('/login');
+  }, [selectedStock, user, router]);
 
   function handleGameEnd(timeline: GameResultEvent[], finalValue: number) {
     setResultTimeline(timeline);
@@ -14,35 +20,21 @@ export default function GamePage() {
     setTimeout(() => router.push('/results'), 1200);
   }
 
-  if (!selectedStock) {
-    // #region agent log
-    fetch('http://127.0.0.1:7317/ingest/db66ef74-30f5-40d2-acf7-ffd6771fd886',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1e6835'},body:JSON.stringify({sessionId:'1e6835',hypothesisId:'A',location:'app/game/page.tsx:18',message:'router.push called in render body — selectedStock is null',data:{windowDefined:typeof window !== 'undefined'},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-    if (typeof window !== 'undefined') router.push('/setup');
-    return null;
-  }
+  if (!selectedStock) return null;
 
   return (
-    <main className="min-h-screen bg-pixel-dark flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
-        {/* Stock info header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-[8px] text-gray-500">
-            NOW RACING:
-            <span className="ml-2" style={{ color: '#00ff41' }}>
-              ${selectedStock.ticker} · {selectedStock.company}
-            </span>
+    <main className="min-h-screen flex flex-col items-center justify-center p-4" style={{ background: 'linear-gradient(180deg,#0d1f0d,#050f05)' }}>
+      <div className="w-full max-w-5xl">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-sm text-forest-pale">
+            🌲 <span className="font-semibold" style={{ color: '#22c55e' }}>${selectedStock.ticker}</span>
+            <span className="ml-2 text-forest-light text-xs">{selectedStock.company}</span>
           </div>
-          <div className="text-[7px] text-gray-600">
-            {selectedStock.sector.toUpperCase()} · {selectedStock.risk.toUpperCase()} RISK
+          <div className="text-xs text-forest-light">
+            {selectedStock.sector} · {selectedStock.risk} risk
           </div>
         </div>
-
         <GameCanvas onGameEnd={handleGameEnd} />
-
-        <div className="text-center mt-4 text-[7px] text-gray-600">
-          ⌨ SPACE / ↑ / W to jump · Click canvas to jump on mobile
-        </div>
       </div>
     </main>
   );

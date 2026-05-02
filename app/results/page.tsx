@@ -5,164 +5,142 @@ import { useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { generateNarratorSummary } from '@/lib/aiNarrator';
 import dynamic from 'next/dynamic';
-import { getAvatarConfig, getSectorIcon } from '@/lib/avatarGenerator';
 
 const ResultsChart = dynamic(() => import('@/components/ResultsChart'), { ssr: false });
+
+const SECTOR_COLORS: Record<string, string> = {
+  tech: '#38bdf8', finance: '#fcd34d', energy: '#fb923c', manufacturing: '#a3e635',
+};
+const SECTOR_EMOJIS: Record<string, string> = {
+  tech: '💻', finance: '💰', energy: '⚡', manufacturing: '⚙️',
+};
 
 export default function ResultsPage() {
   const router = useRouter();
   const { selectedStock, investment, resultTimeline, finalValue, reset } = useGameStore();
 
-  // #region agent log
-  if (typeof window !== 'undefined') fetch('http://127.0.0.1:7317/ingest/db66ef74-30f5-40d2-acf7-ffd6771fd886',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1e6835'},body:JSON.stringify({sessionId:'1e6835',hypothesisId:'E',location:'results/page.tsx:render',message:'ResultsPage render',data:{hasStock:!!selectedStock,timelineLen:resultTimeline?.length,finalValue,investment},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-
   useEffect(() => {
-    if (!selectedStock || resultTimeline.length === 0) {
-      router.push('/setup');
-    }
+    if (!selectedStock || resultTimeline.length === 0) router.push('/setup');
   }, [selectedStock, resultTimeline, router]);
 
   if (!selectedStock || resultTimeline.length === 0) return null;
 
   const gain = finalValue - investment;
-  const gainPct = ((gain / investment) * 100).toFixed(2);
+  const gainPct = ((gain / investment) * 100).toFixed(1);
   const isGain = gain >= 0;
-  const cfg = getAvatarConfig(selectedStock.sector, selectedStock.risk);
+  const sectorColor = SECTOR_COLORS[selectedStock.sector];
+  const sectorEmoji = SECTOR_EMOJIS[selectedStock.sector];
 
   const obstacles = resultTimeline.filter((e) => e.type === 'obstacle');
   const chests = resultTimeline.filter((e) => e.type === 'chest');
   const bestMoment = [...resultTimeline].sort((a, b) => b.value - a.value)[0];
   const worstMoment = [...resultTimeline].sort((a, b) => a.value - b.value)[0];
 
-  const narratorText = generateNarratorSummary(
-    selectedStock,
-    gain,
-    resultTimeline
-  );
-
-  function handlePlayAgain() {
-    reset();
-    router.push('/setup');
-  }
+  const narratorText = generateNarratorSummary(selectedStock, gain, resultTimeline);
 
   return (
-    <main className="min-h-screen bg-pixel-dark p-4 md:p-8">
+    <main className="min-h-screen py-8 px-4" style={{ background: 'linear-gradient(180deg,#0d1f0d,#050f05)' }}>
       <div className="max-w-4xl mx-auto">
-        {/* Finish Banner */}
+        {/* Finish banner */}
         <div className="text-center mb-8">
-          <div
-            className="text-3xl md:text-5xl mb-2 glow-yellow"
-            style={{ color: '#ffd700', fontFamily: '"Press Start 2P", monospace', lineHeight: 1.4 }}
-          >
-            FINISH!
-          </div>
-          <div className="flex items-center justify-center gap-3 mb-1">
-            <span className="text-2xl">{getSectorIcon(selectedStock.sector)}</span>
-            <span
-              className="text-[12px]"
-              style={{ color: cfg.color, fontFamily: '"Press Start 2P", monospace' }}
-            >
-              ${selectedStock.ticker}
-            </span>
-            <span className="text-[9px] text-gray-400">{selectedStock.company}</span>
+          <div className="text-7xl mb-3 animate-bounce-gentle">🏁</div>
+          <h1 className="font-display text-5xl mb-2" style={{ color: sectorColor }}>Race Complete!</h1>
+          <div className="flex items-center justify-center gap-2 text-forest-pale text-base">
+            <span>{sectorEmoji}</span>
+            <span className="font-bold" style={{ color: sectorColor }}>${selectedStock.ticker}</span>
+            <span className="text-forest-light">·</span>
+            <span>{selectedStock.company}</span>
           </div>
         </div>
 
-        {/* Score Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          <div
-            className="p-4 text-center col-span-2"
-            style={{
-              border: `2px solid ${isGain ? '#00ff41' : '#ff3131'}`,
-              background: isGain ? 'rgba(0,255,65,0.05)' : 'rgba(255,49,49,0.05)',
-              boxShadow: `0 0 20px ${isGain ? 'rgba(0,255,65,0.2)' : 'rgba(255,49,49,0.2)'}`,
-            }}
-          >
-            <div className="text-[8px] text-gray-400 mb-2">FINAL PORTFOLIO VALUE</div>
-            <div
-              className="text-2xl"
-              style={{ color: isGain ? '#00ff41' : '#ff3131', fontFamily: '"Press Start 2P", monospace' }}
-            >
-              ${finalValue.toFixed(2)}
-            </div>
-            <div
-              className="text-[10px] mt-1"
-              style={{ color: isGain ? '#00ff41' : '#ff3131' }}
-            >
-              {isGain ? '+' : ''}{gain.toFixed(2)} ({isGain ? '+' : ''}{gainPct}%)
-            </div>
+        {/* Main result card */}
+        <div
+          className="forest-card p-6 mb-6 text-center"
+          style={{
+            border: `2px solid ${isGain ? '#22c55e' : '#ef4444'}`,
+            background: isGain ? 'rgba(34,197,94,0.07)' : 'rgba(239,68,68,0.07)',
+            boxShadow: `0 0 40px ${isGain ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.15)'}`,
+          }}
+        >
+          <div className="text-sm text-forest-pale mb-1">Final Portfolio Value</div>
+          <div className="font-display text-5xl mb-2" style={{ color: isGain ? '#4ade80' : '#f87171' }}>
+            ${finalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </div>
+          <div className="font-semibold text-xl" style={{ color: isGain ? '#22c55e' : '#ef4444' }}>
+            {isGain ? '▲' : '▼'} {isGain ? '+' : ''}{gain.toFixed(0)} ({isGain ? '+' : ''}{gainPct}%)
+          </div>
+          <div className="text-sm text-forest-light mt-1">Started with ${investment.toLocaleString()}</div>
+        </div>
 
-          <div className="p-3 text-center" style={{ border: '2px solid #333', background: '#111' }}>
-            <div className="text-[7px] text-gray-500 mb-1">INITIAL INVESTMENT</div>
-            <div className="text-[12px] text-gray-300" style={{ fontFamily: '"Press Start 2P", monospace' }}>
-              ${investment.toFixed(0)}
+        {/* Stats row */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          {[
+            { icon: '💰', label: 'Initial', value: `$${investment.toLocaleString()}`, color: '#94a3b8' },
+            { icon: '⚠️', label: 'Obstacles Hit', value: obstacles.length.toString(), color: '#f87171' },
+            { icon: '💎', label: 'Chests Collected', value: chests.length.toString(), color: '#fcd34d' },
+            { icon: isGain ? '🚀' : '📉', label: 'Outcome', value: isGain ? 'Profit' : 'Loss', color: isGain ? '#4ade80' : '#f87171' },
+          ].map(({ icon, label, value, color }) => (
+            <div key={label} className="forest-card p-3 text-center">
+              <div className="text-xl mb-1">{icon}</div>
+              <div className="font-bold text-base" style={{ color }}>{value}</div>
+              <div className="text-xs text-forest-light mt-0.5">{label}</div>
             </div>
-          </div>
-
-          <div className="p-3 text-center" style={{ border: '2px solid #333', background: '#111' }}>
-            <div className="text-[7px] text-gray-500 mb-1">EVENTS</div>
-            <div className="text-[10px]" style={{ fontFamily: '"Press Start 2P", monospace' }}>
-              <span style={{ color: '#ff3131' }}>{obstacles.length}⚠</span>
-              {' '}
-              <span style={{ color: '#ffd700' }}>{chests.length}✓</span>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Chart */}
-        <div className="pixel-border p-4 mb-6">
-          <div className="text-[9px] text-pixel-green mb-4">► PORTFOLIO TIMELINE</div>
+        <div className="forest-card p-5 mb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">📈</span>
+            <h3 className="font-display text-lg text-forest-bright">Portfolio Timeline</h3>
+          </div>
           <ResultsChart timeline={resultTimeline} investment={investment} />
         </div>
 
-        {/* Best / Worst moments */}
-        <div className="grid md:grid-cols-2 gap-4 mb-6">
-          <div className="p-4" style={{ border: '2px solid #00ff41', background: 'rgba(0,255,65,0.05)' }}>
-            <div className="text-[8px] text-pixel-green mb-2">► BEST MOMENT</div>
-            <div className="text-[9px] text-gray-300 leading-relaxed">
-              ${bestMoment?.value.toFixed(2)} at {Math.floor(bestMoment?.time ?? 0)}s
-            </div>
-            <div className="text-[7px] text-gray-500 mt-1 leading-relaxed">
-              {bestMoment?.label}
-            </div>
+        {/* Best / Worst row */}
+        <div className="grid md:grid-cols-2 gap-4 mb-5">
+          <div className="forest-card p-4" style={{ border: '1.5px solid rgba(34,197,94,0.4)' }}>
+            <div className="text-sm font-bold text-forest-bright mb-2">🏆 Best Moment</div>
+            <div className="text-lg font-bold" style={{ color: '#4ade80' }}>${bestMoment?.value.toFixed(0)} at {Math.floor(bestMoment?.time ?? 0)}s</div>
+            <div className="text-xs text-forest-pale mt-1 leading-relaxed">{bestMoment?.label}</div>
           </div>
-          <div className="p-4" style={{ border: '2px solid #ff3131', background: 'rgba(255,49,49,0.05)' }}>
-            <div className="text-[8px] text-pixel-red mb-2">► WORST MOMENT</div>
-            <div className="text-[9px] text-gray-300 leading-relaxed">
-              ${worstMoment?.value.toFixed(2)} at {Math.floor(worstMoment?.time ?? 0)}s
-            </div>
-            <div className="text-[7px] text-gray-500 mt-1 leading-relaxed">
-              {worstMoment?.label}
-            </div>
+          <div className="forest-card p-4" style={{ border: '1.5px solid rgba(239,68,68,0.4)' }}>
+            <div className="text-sm font-bold text-red-400 mb-2">⚡ Hardest Obstacle</div>
+            <div className="text-lg font-bold" style={{ color: '#f87171' }}>${worstMoment?.value.toFixed(0)} at {Math.floor(worstMoment?.time ?? 0)}s</div>
+            <div className="text-xs text-forest-pale mt-1 leading-relaxed">{worstMoment?.label}</div>
           </div>
         </div>
 
-        {/* AI Narrator */}
-        <div className="pixel-border p-5 mb-6">
-          <div className="text-[9px] text-pixel-yellow glow-yellow mb-3">► AI MARKET ANALYSIS</div>
-          <p className="text-[8px] text-gray-300 leading-relaxed">{narratorText}</p>
+        {/* AI Analysis */}
+        <div className="forest-card-gold p-5 mb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">🧠</span>
+            <h3 className="font-display text-lg text-gold-mid">AI Market Analysis</h3>
+          </div>
+          <p className="text-sm text-forest-pale leading-relaxed">{narratorText}</p>
         </div>
 
-        {/* Event Log */}
-        <div className="pixel-border p-4 mb-8">
-          <div className="text-[9px] text-pixel-green mb-3">► FULL EVENT LOG</div>
+        {/* Event log */}
+        <div className="forest-card p-4 mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">📜</span>
+            <h3 className="font-display text-base text-forest-bright">Full Event Log</h3>
+          </div>
           <div className="space-y-1 max-h-48 overflow-y-auto">
             {resultTimeline.map((ev, i) => (
               <div
                 key={i}
-                className="flex items-start gap-3 p-2 text-[7px]"
+                className="flex items-center gap-3 p-2.5 rounded-lg text-sm"
                 style={{
-                  background: ev.type === 'obstacle' ? 'rgba(255,49,49,0.05)' : 'rgba(0,255,65,0.05)',
-                  borderLeft: `3px solid ${ev.type === 'obstacle' ? '#ff3131' : '#00ff41'}`,
+                  background: ev.type === 'obstacle' ? 'rgba(239,68,68,0.07)' : 'rgba(34,197,94,0.07)',
+                  borderLeft: `3px solid ${ev.type === 'obstacle' ? '#ef4444' : '#22c55e'}`,
                 }}
               >
-                <span style={{ color: ev.type === 'obstacle' ? '#ff3131' : '#00ff41', flexShrink: 0 }}>
+                <span style={{ color: ev.type === 'obstacle' ? '#f87171' : '#4ade80', flexShrink: 0, width: 44, fontSize: 11 }}>
                   {ev.type === 'obstacle' ? '⚠' : '✓'} {Math.floor(ev.time)}s
                 </span>
-                <span className="text-gray-400 flex-1">{ev.label}</span>
-                <span style={{ color: ev.type === 'obstacle' ? '#ff3131' : '#00ff41', flexShrink: 0 }}>
+                <span className="text-forest-pale flex-1 truncate text-xs">{ev.label}</span>
+                <span className="font-bold text-xs" style={{ color: ev.type === 'obstacle' ? '#f87171' : '#4ade80', flexShrink: 0 }}>
                   ${ev.value.toFixed(0)}
                 </span>
               </div>
@@ -170,23 +148,20 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button
-            onClick={handlePlayAgain}
-            className="pixel-btn pixel-btn-green text-[10px] py-4 px-8"
-          >
-            ▶ PLAY AGAIN
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+          <button onClick={() => { reset(); router.push('/setup'); }} className="forest-btn forest-btn-gold text-lg px-10 py-4">
+            🔄 Play Again
           </button>
-          <Link href="/">
-            <button className="pixel-btn pixel-btn-outline text-[10px] py-4 px-8 w-full sm:w-auto">
-              ← VIEW ALL STOCKS
+          <Link href="/home">
+            <button className="forest-btn forest-btn-outline text-lg px-10 py-4 w-full sm:w-auto">
+              📊 Market Overview
             </button>
           </Link>
         </div>
 
-        <p className="text-center text-[7px] text-gray-600 mt-8">
-          * SIMULATION ONLY · RESULTS DO NOT REFLECT REAL MARKET PERFORMANCE · NOT FINANCIAL ADVICE
+        <p className="text-center text-xs text-forest-light/40 mt-4">
+          Simulation only · Not financial advice · GS Hackathon 2026
         </p>
       </div>
     </main>

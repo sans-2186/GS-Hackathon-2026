@@ -9,13 +9,37 @@ export interface GameResultEvent {
   type: 'obstacle' | 'chest';
 }
 
+export interface Choice {
+  text: string;
+  detail: string;
+  impactMultiplier: number;
+}
+
+export interface User {
+  name: string;
+  email: string;
+}
+
 interface GameStore {
+  // Auth
+  user: User | null;
+  setUser: (user: User) => void;
+  logout: () => void;
+
+  // Game
   selectedStock: Stock | null;
   investment: number;
   gameEvents: GameEvent[];
   resultTimeline: GameResultEvent[];
   finalValue: number;
 
+  // Story choices
+  storyChoices: Choice[] | null;
+  pendingEventIdx: number | null;
+  setStoryChoices: (choices: Choice[] | null) => void;
+  setPendingEventIdx: (idx: number | null) => void;
+
+  // Actions
   setSelectedStock: (stock: Stock) => void;
   setInvestment: (amount: number) => void;
   setGameEvents: (events: GameEvent[]) => void;
@@ -24,12 +48,37 @@ interface GameStore {
   reset: () => void;
 }
 
+const loadUser = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('sq_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 export const useGameStore = create<GameStore>((set) => ({
+  user: loadUser(),
+  setUser: (user) => {
+    if (typeof window !== 'undefined') localStorage.setItem('sq_user', JSON.stringify(user));
+    set({ user });
+  },
+  logout: () => {
+    if (typeof window !== 'undefined') localStorage.removeItem('sq_user');
+    set({ user: null });
+  },
+
   selectedStock: null,
   investment: 1000,
   gameEvents: [],
   resultTimeline: [],
   finalValue: 0,
+
+  storyChoices: null,
+  pendingEventIdx: null,
+  setStoryChoices: (choices) => set({ storyChoices: choices }),
+  setPendingEventIdx: (idx) => set({ pendingEventIdx: idx }),
 
   setSelectedStock: (stock) => set({ selectedStock: stock }),
   setInvestment: (amount) => set({ investment: amount }),
@@ -43,5 +92,7 @@ export const useGameStore = create<GameStore>((set) => ({
       gameEvents: [],
       resultTimeline: [],
       finalValue: 0,
+      storyChoices: null,
+      pendingEventIdx: null,
     }),
 }));
